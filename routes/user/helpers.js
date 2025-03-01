@@ -1,10 +1,11 @@
 const User = require('../../modals/user');
 exports.getUser = async (search) => {
-   return User.findOne({
-        $text: {
-            $search: search
-        }
-    })
+    // return User.findOne(
+    //     {
+    //     $text: {
+    //         $search: search
+    //     }
+    // })
     // return User.aggregate([
     //     {
     //         $facet: {
@@ -31,6 +32,7 @@ exports.getUser = async (search) => {
     //         }
     //     }
     // ]);
+    return User.find();
 }
 
 module.exports = exports;
