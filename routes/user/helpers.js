@@ -32,7 +32,7 @@ exports.getUser = async (search) => {
     //         }
     //     }
     // ]);
-    return User.find();
+    return User.findById("67aeff3b76b42cf1a6bb0a29");
 }
 
 module.exports = exports;
