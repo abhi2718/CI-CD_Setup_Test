@@ -1,5 +1,5 @@
 const User = require('../../modals/user');
-exports.getUser = async (pageSize, skip) => {
+exports.getUser = async (pageSize, skip,page) => {
     // return User.findOne(
     //     {
     //     $text: {
