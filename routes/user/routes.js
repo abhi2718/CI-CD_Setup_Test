@@ -9,7 +9,8 @@ exports.get = async (req, res, next) => {
       success: true,
       users: data[0].items,
       page: data[0].page,
-      pageSize: data[0].pageSize
+      pageSize: data[0].pageSize,
+      message:"User list"
     });
   } catch (error) {
     console.log(error);
