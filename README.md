@@ -49,3 +49,5 @@ Your GoDaddy domain should now be mapped to your AWS EC2 instance!
 
 4. SSL Certificate with Let’s Encrypt (Certbot)
 https://www.digitalocean.com/community/tutorials/how-to-secure-nginx-with-let-s-encrypt-on-ubuntu-20-04
+
+
