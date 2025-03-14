@@ -191,5 +191,277 @@ const outPut = [
         price: 1000,
       },
     ],
+  },
+];
+
+// Comparison Operators
+db.movies.find({ runtime: { $ne: 47 } });
+
+// Embeded object query
+db.movies.find({ "externals.tvrage": 0 });
+
+// Logical Operators
+db.movies.find({
+  $or: [{ "rating.average": { $gte: 4.5 } }, { "rating.average": { $lte: 9 } }],
+});
+
+db.movies.find({
+  $and: [{ "rating.average": { $gte: 8 } }, { genres: "Drama" }],
+});
+
+// Element Operators
+//$exists -> It find only those documents that contain age field .
+db.userInfo.find({
+  age: {
+    $exists: true,
+    $ne: null,
+  },
+});
+
+// $type -> It only find all the elements whose age is null
+db.userInfo.find({ age: { $type: "null" } });
+
+// regex -> It should follow the given regex
+db.userInfo.find({
+  $or: [{ email: { $regex: "r" } }, { email: { $regex: "s" } }],
+});
+
+// expr
+// 1.Compare Two Fields from a Single Document
+
+db.monthlyBudget.insertMany([
+  { _id: 1, category: "food", budget: 400, spent: 450 },
+  { _id: 2, category: "drinks", budget: 100, spent: 150 },
+  { _id: 3, category: "clothes", budget: 100, spent: 50 },
+  { _id: 4, category: "misc", budget: 500, spent: 300 },
+  { _id: 5, category: "travel", budget: 200, spent: 650 },
+]);
+
+db.monthlyBudget.find({ $expr: { $gt: ["$spent", "$budget"] } });
+
+// Output:
+[
+  { _id: 1, category: "food", budget: 400, spent: 450 },
+  { _id: 2, category: "drinks", budget: 100, spent: 150 },
+  { _id: 5, category: "travel", budget: 200, spent: 650 },
+];
+
+// Use $expr With Conditional Statements --> https://www.mongodb.com/docs/manual/reference/operator/query/expr/
+
+let discountedPrice = {
+  $cond: {
+    if: { $gte: ["$qty", 100] },
+    then: { $multiply: ["$price", NumberDecimal("0.50")] },
+    else: { $multiply: ["$price", NumberDecimal("0.75")] },
+  },
+};
+
+db.supplies.find({ $expr: { $lt: [discountedPrice, NumberDecimal("5")] } });
+
+[
+  { _id: 2, item: "notebook", qty: 200, price: Decimal128("8") },
+  { _id: 3, item: "pencil", qty: 50, price: Decimal128("6") },
+  { _id: 4, item: "eraser", qty: 150, price: Decimal128("3") },
+];
+
+// Array
+db.userInfo.find({ "hobbies.title": "Sport" })[
+  {
+    _id: ObjectId("67cece9f2ddfbcd81f356fc2"),
+    name: "Ram",
+    gender: "Male",
+    email: "ram@test.com",
+    hobbies: [
+      { title: "Sport", frequency: 4 },
+      { title: "Music", frequency: 6 },
+    ],
   }
 ];
+
+// $size operator -> is use to find all documets how matches the provided size value of any array
+db.userInfo.find({ hobbies: { $size: 2 } })[
+  {
+    _id: ObjectId("67cece9f2ddfbcd81f356fc2"),
+    name: "Ram",
+    gender: "Male",
+    email: "ram@test.com",
+    hobbies: [
+      { title: "Sport", frequency: 4 },
+      { title: "Music", frequency: 6 },
+    ],
+  }
+];
+
+// $elemMatch Operator -> It will work like filter method in array
+db.userInfo.find({ hobbies: { $elemMatch: { title: "Sport" } } })[
+  {
+    _id: ObjectId("67cece9f2ddfbcd81f356fc2"),
+    name: "Ram",
+    gender: "Male",
+    email: "ram@test.com",
+    hobbies: [
+      { title: "Sport", frequency: 4 },
+      { title: "Music", frequency: 6 },
+    ],
+  }
+];
+
+//sorting
+db.userInfo.find().sort({ "hobbies.frequency": -1 });
+db.userInfo.find().sort({ name: 1 })[
+  ({
+    _id: ObjectId("67cece9f2ddfbcd81f356fc4"),
+    name: "Abhi",
+    age: 24,
+    gender: "Male",
+  },
+  {
+    _id: ObjectId("67cecfc82ddfbcd81f356fc5"),
+    name: "Ashish",
+    gender: "Male",
+    age: null,
+  },
+  {
+    _id: ObjectId("67cece9f2ddfbcd81f356fc2"),
+    name: "Ram",
+    gender: "Male",
+    email: "ram@test.com",
+    hobbies: [
+      { title: "Sport", frequency: 4 },
+      { title: "Music", frequency: 6 },
+    ],
+  },
+  {
+    _id: ObjectId("67cece9f2ddfbcd81f356fc3"),
+    name: "Shyam",
+    email: "shyam@test.com",
+  })
+];
+
+// skip & limit
+db.userInfo.find().sort({ name: -1 }).skip(2).limit(2)[
+  ({
+    _id: ObjectId("67cecfc82ddfbcd81f356fc5"),
+    name: "Ashish",
+    gender: "Male",
+    age: null,
+  },
+  {
+    _id: ObjectId("67cece9f2ddfbcd81f356fc4"),
+    name: "Abhi",
+    age: 24,
+    gender: "Male",
+  })
+];
+
+// Projection
+db.userInfo.find(
+  {},
+  {
+    name: 1,
+    email: 1,
+    "hobbies.title": 1,
+  }
+)[
+  // output
+  ({
+    _id: ObjectId("67cece9f2ddfbcd81f356fc2"),
+    name: "Ram",
+    email: "ram@test.com",
+    hobbies: [{ title: "Sport" }, { title: "Music" }],
+  },
+  {
+    _id: ObjectId("67cece9f2ddfbcd81f356fc3"),
+    name: "Shyam",
+    email: "shyam@test.com",
+  },
+  { _id: ObjectId("67cece9f2ddfbcd81f356fc4"), name: "Abhi" },
+  { _id: ObjectId("67cecfc82ddfbcd81f356fc5"), name: "Ashish" })
+];
+
+// Update
+
+// $inc -> It will increment age by 1
+db.userInfo.updateOne(
+  {
+    _id: ObjectId("67cece9f2ddfbcd81f356fc2"),
+  },
+  {
+    $inc: {
+      age: 1,
+    },
+  }
+);
+
+// $unset -> Getting Rid of Fields
+
+db.userInfo.updateOne(
+  { _id: ObjectId("67cece9f2ddfbcd81f356fc4") },
+  { $unset: { age: "" } }
+);
+
+// $rename -> We use this operator to rename a field
+db.userInfo.updateOne(
+  { _id: ObjectId("67cece9f2ddfbcd81f356fc2") },
+  { $remane: { hobbies: "hobbyList" } }
+);
+
+// upsert:true -> if doc found it will update if not then first it will create than update it
+db.userInfo.updateOne(
+  { name: "Shivani" },
+  { $set: { age: 24, email: "shivani.test@gmail.com" } },
+  { upsert: true }
+);
+
+// ------------------------ Array CRUD Section ---------------------------
+
+// "hobbyList.$.team" -> Here $ represent the first filter document (it is like find it will only filter first match document)
+// Note it will only update fist matching hobby object of each document
+// visit Lecture No - 114
+db.userInfo.updateOne(
+  {
+    _id: ObjectId("67cece9f2ddfbcd81f356fc2"),
+    hobbyList: { $elemMatch: { title: "Sport", frequency: 4 } },
+  },
+  { $set: { "hobbyList.$.team": "MI" } }
+);
+
+// To introduce new field in each element of an array we use hobbyList.$[].isGreatorThan2
+// Visit Lecture No - 115
+db.userInfo.updateMany(
+  { hobbyList: { $elemMatch: { frequency: { $gte: 2 } } } },
+  { $set: { "hobbyList.$[].isGreatorThan2": true } }
+);
+
+// Below method will find all matching objects and update them while $ will only find first matching document like find in array
+// Visit Lecture No - 116
+db.userInfo.updateMany(
+  { hobbyList: { $elemMatch: { frequency: { $gte: 2 } } } },
+  { $set: { "hobbyList.$[el].isFound": true } },
+  { arryFilters: [{ "el.frequency": { $gt: 1 } }] }
+);
+// ================== Adding Element in array ==============
+// Adding single element in array
+// Visit Lecture No - 117
+db.userInfo.updateMany(
+  {},
+  { $push: { hobbyList: { title: "coding", frequency: 10 } } }
+);
+
+// Adding multile elements in array
+// Visit Lecture No - 118
+db.userInfo.updateMany(
+  {},
+  { $push: { hobbyList: { $each: [{ title: "t10" }, { title: "t11" }] } } }
+);
+
+// =========================== removing element from array =====================
+db.userInfo.updateMany({},{$pull:{hobbyList:{title:"t10"}}})
+
+// removing last element of  array 
+db.userInfo.updateMany({},{$pop:{hobbyList:1}})
+
+// removing first element of array
+db.userInfo.updateMany({}, { $pop: { hobbyList: -1 } })
+
+// $addToSet is use to add one document like push but it will only add unique value it will not add old value
