@@ -456,12 +456,218 @@ db.userInfo.updateMany(
 );
 
 // =========================== removing element from array =====================
-db.userInfo.updateMany({},{$pull:{hobbyList:{title:"t10"}}})
+db.userInfo.updateMany({}, { $pull: { hobbyList: { title: "t10" } } });
 
-// removing last element of  array 
-db.userInfo.updateMany({},{$pop:{hobbyList:1}})
+// removing last element of  array
+db.userInfo.updateMany({}, { $pop: { hobbyList: 1 } });
 
 // removing first element of array
-db.userInfo.updateMany({}, { $pop: { hobbyList: -1 } })
+db.userInfo.updateMany({}, { $pop: { hobbyList: -1 } });
 
 // $addToSet is use to add one document like push but it will only add unique value it will not add old value
+
+// importing persons.json in mongodb from json file navigate to the folder where json file is located
+//  mongoimport persons.json -d analytics -c persons --jsonArray
+
+// ============================ Aggregation Framework ========================
+
+// $match is equal to find() it will filter the documents
+db.persons.aggregate([{ $match: { gender: "male" } }]);
+
+// $group is use to group the data and we can add some keys
+
+db.persons.aggregate([
+  { $match: { gender: "male" } },
+  {
+    $group: {
+      _id: { state: "$location.state" },
+      numberOfPeoplePerState: { $sum: 1 }, // acc operator
+    },
+  },
+]);
+
+// OutPut
+[
+  { _id: { state: "cher" }, numberOfPeoplePerState: 2 },
+  { _id: { state: "hordaland" }, numberOfPeoplePerState: 6 },
+  { _id: { state: "monaghan" }, numberOfPeoplePerState: 7 },
+];
+
+// $sort
+db.persons.aggregate([
+  { $match: { gender: "male" } },
+  {
+    $group: {
+      _id: { state: "$location.state" },
+      numberOfPeoplePerState: { $sum: 1 }, // acc operator
+    },
+  },
+  {
+    $sort: {
+      numberOfPeoplePerState: -1,
+    },
+  },
+]);
+
+// $project :{email: 1, fullName: { $concat: ["$name.first", " ", "$name.last"] },}
+// In project we can add new fields also  dynamically calculate their value like fullName
+
+db.persons.aggregate([
+  { $match: { gender: "male" } },
+  {
+    $project: {
+      email: 1,
+      fullName: { $concat: ["$name.first", " ", "$name.last"] },
+    },
+  },
+]);
+
+// $unwind -> It will pull out each element of array and it will create seprate document
+
+db.users.aggregate([
+  { $unwind: "$hobbies" },
+  {
+    $group: {
+      _id: { age: "$age" },
+      hobbiesPerAgeGroup: { $addToSet: "$hobbies" },
+      numberOfDocuments: { $sum: 1 },
+    },
+  },
+]);
+
+// $slice is use for taking slice of an array
+db.users.aggregate([
+  { $project: { name: 1, examScrores: { $slice: ["$examScores", 1, 2] } } },
+]);
+
+// $size is use to find the size of an array
+db.users.aggregate([
+  { $project: { name: 1, examCount: { $size: "$examScores" } } },
+]);
+
+// filter is used to filter the document
+
+db.users.aggregate([
+  {
+    $project: {
+      scores: {
+        $filter: {
+          input: "$examScores",
+          as: "score",
+          cond: { $gt: ["$$score.score", 58] },
+        },
+      },
+    },
+  },
+]);
+
+// We use $bucket to categorise the data into group
+db.users.aggregate([
+  {
+    $bucket: {
+      groupBy: "$age",
+      boundaries: [18, 30, 40, 50, 100],
+      output: {
+        numberOfUsersPerAgeGroup: { $sum: 1 },
+        averageAge: { $avg: "$age" },
+      },
+    },
+  },
+]);
+
+// $bucketAuto  will create group by itself and put the values
+db.users.aggregate([
+  {
+    $bucketAuto: {
+      groupBy: "$age",
+      buckets: 4,
+      output: { numberOfUsersPerAgeGroup: { $sum: 1 } },
+    },
+  },
+]);
+
+// $out -> it will write the output of above stage in given collection 
+db.users.aggregate([{ $project: { name: 1 } }, { $out: "person" }])
+// it will create person collection and create a doc in it
+
+
+// Indexing 
+
+// explain("executionStats") -> It will explain the execution stats
+// db.persons.explain("executionStats").find({"dob.age":{$gt:60}})
+
+
+// How to create index 
+// {"dob.age":1} -> here 1 represent assending order and -1 desending order
+
+db.persons.createIndex({ "dob.age": 1 })
+
+// to delete index
+db.persons.dropIndex({"dob.age":1}) 
+
+// get all indexs
+db.persons.getIndexes()
+
+// Compound Indexs
+db.persons.createIndex({ "dob.age": 1, gender: 1 })
+
+// creating text index to search value
+
+db.person.createIndex({ name: "text" })
+
+db.person.find({$text:{$search:"shivani"}})
+
+
+const data = [
+  {
+    _id: ObjectId('67dea61a28313e90b5356fc2'),
+    title: 'A Book',
+    description: 'This is an awesome book about a young artist!'
+  },
+  {
+    _id: ObjectId('67dea61a28313e90b5356fc3'),
+    title: 'Red T-Shirt',
+    description: "Red T-Shirt is red and it's pretty awesome!"
+  }
+]
+
+// if we will search "awesome book" without scape character it will return both document
+db.products.find({$text:{$search:"awesome book"}})
+[
+  {
+    _id: ObjectId('67dea61a28313e90b5356fc2'),
+    title: 'A Book',
+    description: 'This is an awesome book about a young artist!'
+  },
+  {
+    _id: ObjectId('67dea61a28313e90b5356fc3'),
+    title: 'Red T-Shirt',
+    description: "Red T-Shirt is red and it's pretty awesome!"
+  }
+]
+
+// searching for  phrase "awesome book"
+db.products.find({ $text: { $search: "\"awesome book\"" } })
+
+// shorting result with score
+db.products.find({$text:{$search:"awesome t-shirt"}},{score:{$meta:"textScore"}}).sort({score:{$meta:"textScore"}})
+[
+  {
+    _id: ObjectId('67dea61a28313e90b5356fc3'),
+    title: 'Red T-Shirt',
+    description: "Red T-Shirt is red and it's pretty awesome!",
+    score: 1.75
+  },
+  {
+    _id: ObjectId('67dea61a28313e90b5356fc2'),
+    title: 'A Book',
+    description: 'This is an awesome book about a young artist!',
+    score: 0.625
+  }
+]
+
+// creating compound text index -> It will create a single array which will have key word of title and description. It will help us to search in title and description
+db.products.createIndex({ title: "text", description: "text" })
+
+// removing t-shirt from the search
+db.products.find({$text:{$search:"awesome -t-shirt"}})
